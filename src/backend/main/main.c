@@ -56,6 +56,7 @@ static void check_root(const char *progname);
 int
 main(int argc, char *argv[])
 {
+	printf("Entering main...");
 	bool		do_check_root = true;
 
 	reached_main = true;
@@ -178,6 +179,7 @@ main(int argc, char *argv[])
 	/*
 	 * Dispatch to one of various subprograms depending on first argument.
 	 */
+	printf("Dispatching to one of various subprograms depending on first argument...");
 
 	if (argc > 1 && strcmp(argv[1], "--check") == 0)
 		BootstrapModeMain(argc, argv, true);
@@ -192,8 +194,10 @@ main(int argc, char *argv[])
 	else if (argc > 1 && strcmp(argv[1], "--single") == 0)
 		PostgresSingleUserMain(argc, argv,
 							   strdup(get_user_name_or_exit(progname)));
-	else
+	else{
+		printf("Entering PostmasterMain...");
 		PostmasterMain(argc, argv);
+	}
 	/* the functions above should not return */
 	abort();
 }

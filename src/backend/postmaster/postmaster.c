@@ -459,6 +459,7 @@ HANDLE		PostmasterHandle;
 void
 PostmasterMain(int argc, char *argv[])
 {
+	printf("Entering PostmasterMain...\n");
 	int			opt;
 	int			status;
 	char	   *userDoption = NULL;
@@ -564,6 +565,7 @@ PostmasterMain(int argc, char *argv[])
 	 */
 	while ((opt = getopt(argc, argv, "B:bC:c:D:d:EeFf:h:ijk:lN:OPp:r:S:sTt:W:-:")) != -1)
 	{
+		printf("opt: %c, optarg: %s\n", opt, optarg);
 		switch (opt)
 		{
 			case 'B':
@@ -1329,14 +1331,20 @@ PostmasterMain(int argc, char *argv[])
 	AddToDataDirLockFile(LOCK_FILE_LINE_PM_STATUS, PM_STATUS_STARTING);
 
 	/* Start bgwriter and checkpointer so they can help with recovery */
-	if (CheckpointerPID == 0)
-		CheckpointerPID = StartChildProcess(B_CHECKPOINTER);
-	if (BgWriterPID == 0)
+	printf("%d In post Master, Starting background processes\n", getpid());
+	if (CheckpointerPID == 0){
+		printf("%d In post Master, Starting Checkpointer\n", getpid());
+		// CheckpointerPID = StartChildProcess(B_CHECKPOINTER);
+	}
+	if (BgWriterPID == 0){
+		printf("%d In post Master, Starting BgWriter\n", getpid());
 		BgWriterPID = StartChildProcess(B_BG_WRITER);
+	}
 
 	/*
 	 * We're ready to rock and roll...
 	 */
+	printf("Starting startup process\n");
 	StartupPID = StartChildProcess(B_STARTUP);
 	Assert(StartupPID != 0);
 	StartupStatus = STARTUP_RUNNING;
@@ -1646,8 +1654,10 @@ ServerLoop(void)
 			{
 				ClientSocket s;
 
-				if (AcceptConnection(events[i].fd, &s) == STATUS_OK)
+				if (AcceptConnection(events[i].fd, &s) == STATUS_OK){
+					printf("Starting backendStartup\n");
 					BackendStartup(&s);
+				}
 
 				/* We no longer need the open socket in this process */
 				if (s.sock != PGINVALID_SOCKET)
@@ -3152,18 +3162,24 @@ LaunchMissingBackgroundProcesses(void)
 	if (pmState == PM_RUN || pmState == PM_RECOVERY ||
 		pmState == PM_HOT_STANDBY || pmState == PM_STARTUP)
 	{
-		if (CheckpointerPID == 0)
+		if (CheckpointerPID == 0){
 			CheckpointerPID = StartChildProcess(B_CHECKPOINTER);
-		if (BgWriterPID == 0)
+			printf("CheckpointerPID = %d\n", CheckpointerPID);
+		}
+		if (BgWriterPID == 0){
 			BgWriterPID = StartChildProcess(B_BG_WRITER);
+			printf("BgWriterPID = %d\n", BgWriterPID);
+		}
 	}
 
 	/*
 	 * WAL writer is needed only in normal operation (else we cannot be
 	 * writing any new WAL).
 	 */
-	if (WalWriterPID == 0 && pmState == PM_RUN)
+	if (WalWriterPID == 0 && pmState == PM_RUN){
 		WalWriterPID = StartChildProcess(B_WAL_WRITER);
+		printf("WalWriterPID = %d\n", WalWriterPID);
+	}
 
 	/*
 	 * We don't want autovacuum to run in binary upgrade mode because

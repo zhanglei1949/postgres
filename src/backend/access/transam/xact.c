@@ -2062,6 +2062,7 @@ AtSubCleanup_Memory(void)
 static void
 StartTransaction(void)
 {
+	printf("%d Start Transaction\n", getpid());
 	TransactionState s;
 	VirtualTransactionId vxid;
 
@@ -2159,11 +2160,14 @@ StartTransaction(void)
 	 */
 	vxid.procNumber = MyProcNumber;
 	vxid.localTransactionId = GetNextLocalTransactionId();
+	printf("%d Start Transaction vxid %d\n", getpid(), vxid.localTransactionId);
 
 	/*
 	 * Lock the virtual transaction id before we announce it in the proc array
 	 */
 	VirtualXactLockTableInsert(vxid);
+
+	printf("%d Lock Virtual Transaction%d \n", getpid(), vxid.localTransactionId);
 
 	/*
 	 * Advertise it in the proc array.  We assume assignment of
@@ -2226,6 +2230,7 @@ StartTransaction(void)
 static void
 CommitTransaction(void)
 {
+	printf("%d commit Transaction\n", getpid());
 	TransactionState s = CurrentTransactionState;
 	TransactionId latestXid;
 	bool		is_parallel_worker;
@@ -3154,6 +3159,7 @@ CommitTransactionCommand(void)
 	 */
 	while (!CommitTransactionCommandInternal())
 	{
+		printf("%d CommitTransactionCommand\n", getpid());
 	}
 }
 
@@ -3166,12 +3172,14 @@ CommitTransactionCommand(void)
 static bool
 CommitTransactionCommandInternal(void)
 {
+	printf("%d CommitTransactionCommandInternal\n", getpid());
 	TransactionState s = CurrentTransactionState;
 	SavedTransactionCharacteristics savetc;
 
 	/* Must save in case we need to restore below */
 	SaveTransactionCharacteristics(&savetc);
 
+	printf("%d CommitTransactionCommandInternal: blockState %s\n", getpid(), BlockStateAsString(s->blockState));
 	switch (s->blockState)
 	{
 			/*
@@ -3202,6 +3210,7 @@ CommitTransactionCommandInternal(void)
 			 * CommandCounterIncrement.)
 			 */
 		case TBLOCK_BEGIN:
+			printf("%d blockState TBLOCK_BEGIN\n", getpid());
 			s->blockState = TBLOCK_INPROGRESS;
 			break;
 
@@ -3213,6 +3222,7 @@ CommitTransactionCommandInternal(void)
 		case TBLOCK_INPROGRESS:
 		case TBLOCK_IMPLICIT_INPROGRESS:
 		case TBLOCK_SUBINPROGRESS:
+			printf("%d blockState TBLOCK_INPROGRESS\n", getpid());
 			CommandCounterIncrement();
 			break;
 
@@ -3221,6 +3231,7 @@ CommitTransactionCommandInternal(void)
 			 * idle state.
 			 */
 		case TBLOCK_END:
+			printf("%d blockState TBLOCK_END\n", getpid());
 			CommitTransaction();
 			s->blockState = TBLOCK_DEFAULT;
 			if (s->chain)
@@ -3229,6 +3240,7 @@ CommitTransactionCommandInternal(void)
 				s->blockState = TBLOCK_INPROGRESS;
 				s->chain = false;
 				RestoreTransactionCharacteristics(&savetc);
+				printf("After RestoreTransactionCharacteristics\n");
 			}
 			break;
 

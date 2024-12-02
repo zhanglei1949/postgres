@@ -82,8 +82,8 @@ extern void ProcessClientWriteInterrupt(bool blocked);
 
 extern void process_postgres_switches(int argc, char *argv[],
 									  GucContext ctx, const char **dbname);
-extern void PostgresSingleUserMain(int argc, char *argv[],
-								   const char *username) pg_attribute_noreturn();
+// extern void PostgresSingleUserMain(int argc, char *argv[],
+								//    const char *username) pg_attribute_noreturn();
 extern void PostgresMain(const char *dbname,
 						 const char *username) pg_attribute_noreturn();
 extern long get_stack_depth_rlimit(void);

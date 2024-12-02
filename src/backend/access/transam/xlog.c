@@ -45,6 +45,8 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <execinfo.h> /* backtrace, backtrace_symbols_fd */
+#include <unistd.h> /* STDOUT_FILENO */
 
 #include "access/clog.h"
 #include "access/commit_ts.h"
@@ -1984,6 +1986,7 @@ XLogRecPtrToBytePos(XLogRecPtr ptr)
 static void
 AdvanceXLInsertBuffer(XLogRecPtr upto, TimeLineID tli, bool opportunistic)
 {
+	printf("%d AdvanceXLInsertBuffer\n", getpid());
 	XLogCtlInsert *Insert = &XLogCtl->Insert;
 	int			nextidx;
 	XLogRecPtr	OldPageRqstPtr;
@@ -2298,6 +2301,14 @@ XLogCheckpointNeeded(XLogSegNo new_segno)
 	return false;
 }
 
+void print_stacktrace(void) {
+    size_t size;
+    enum Constexpr { MAX_SIZE = 1024 };
+    void *array[MAX_SIZE];
+    size = backtrace(array, MAX_SIZE);
+    backtrace_symbols_fd(array, size, STDOUT_FILENO);
+}
+
 /*
  * Write and/or fsync the log at least as far as WriteRqst indicates.
  *
@@ -2313,6 +2324,8 @@ XLogCheckpointNeeded(XLogSegNo new_segno)
 static void
 XLogWrite(XLogwrtRqst WriteRqst, TimeLineID tli, bool flexible)
 {
+	printf("%d called XLogWrite\n", getpid());
+	print_stacktrace();
 	bool		ispartialpage;
 	bool		last_iteration;
 	bool		finishing_seg;
@@ -2349,8 +2362,10 @@ XLogWrite(XLogwrtRqst WriteRqst, TimeLineID tli, bool flexible)
 	 */
 	curridx = XLogRecPtrToBufIdx(LogwrtResult.Write);
 
+	
 	while (LogwrtResult.Write < WriteRqst.Write)
 	{
+		printf("%d XLogWrite current LogwrtResult.Write %lu, WriteRqst req %lu\n", getpid(),LogwrtResult.Write, WriteRqst.Write);
 		/*
 		 * Make sure we're not ahead of the insert process.  This could happen
 		 * if we're passed a bogus WriteRqst.Write that is past the end of the
@@ -2548,6 +2563,7 @@ XLogWrite(XLogwrtRqst WriteRqst, TimeLineID tli, bool flexible)
 	if (LogwrtResult.Flush < WriteRqst.Flush &&
 		LogwrtResult.Flush < LogwrtResult.Write)
 	{
+		printf("%d XLogWrite current LogwrtResult.Flush %lu, WriteRqst req %lu\n", getpid(),LogwrtResult.Flush, WriteRqst.Flush);
 		/*
 		 * Could get here without iterating above loop, in which case we might
 		 * have no open file or the wrong one.  However, we do not need to
@@ -2801,6 +2817,7 @@ UpdateMinRecoveryPoint(XLogRecPtr lsn, bool force)
 void
 XLogFlush(XLogRecPtr record)
 {
+	printf("%d called XLogFlush\n", getpid());
 	XLogRecPtr	WriteRqstPtr;
 	XLogwrtRqst WriteRqst;
 	TimeLineID	insertTLI = XLogCtl->InsertTimeLineID;
@@ -2989,6 +3006,7 @@ XLogFlush(XLogRecPtr record)
 bool
 XLogBackgroundFlush(void)
 {
+	printf("%d called XLogBackgroundFlush\n", getpid());
 	XLogwrtRqst WriteRqst;
 	bool		flexible = true;
 	static TimestampTz lastflush;
@@ -3100,6 +3118,7 @@ XLogBackgroundFlush(void)
 	if (WriteRqst.Write > LogwrtResult.Write ||
 		WriteRqst.Flush > LogwrtResult.Flush)
 	{
+		printf("%d Calling XLogWrite...\n", getpid());
 		XLogWrite(WriteRqst, insertTLI, flexible);
 	}
 	LWLockRelease(WALWriteLock);
@@ -5428,6 +5447,7 @@ CheckRequiredParameterValues(void)
 void
 StartupXLOG(void)
 {
+	printf("StartupXLOG, process %d\n", getpid());
 	XLogCtlInsert *Insert;
 	CheckPoint	checkPoint;
 	bool		wasShutdown;
@@ -5692,6 +5712,7 @@ StartupXLOG(void)
 	/* REDO */
 	if (InRecovery)
 	{
+		printf("IN RECOVERY, redo the logs\n");
 		/* Initialize state for RecoveryInProgress() */
 		SpinLockAcquire(&XLogCtl->info_lck);
 		if (InArchiveRecovery)
@@ -6637,7 +6658,7 @@ ShutdownXLOG(int code, Datum arg)
 		 */
 		if (XLogArchivingActive())
 			RequestXLogSwitch(false);
-
+		// printf("Don't create checkpoint\n");
 		CreateCheckPoint(CHECKPOINT_IS_SHUTDOWN | CHECKPOINT_IMMEDIATE);
 	}
 }

@@ -33,8 +33,10 @@ volatile sig_atomic_t ShutdownRequestPending = false;
 void
 HandleMainLoopInterrupts(void)
 {
-	if (ProcSignalBarrierPending)
+	if (ProcSignalBarrierPending){
+		printf("%d ProcSignalBarrierPending is true...\n", getpid());
 		ProcessProcSignalBarrier();
+	}
 
 	if (ConfigReloadPending)
 	{
@@ -42,12 +44,16 @@ HandleMainLoopInterrupts(void)
 		ProcessConfigFile(PGC_SIGHUP);
 	}
 
-	if (ShutdownRequestPending)
+	if (ShutdownRequestPending){
+		printf("%d ShutdownRequestPending is true...\n", getpid());
 		proc_exit(0);
+	}
 
 	/* Perform logging of memory contexts of this process */
-	if (LogMemoryContextPending)
+	if (LogMemoryContextPending){
+		printf("%d LogMemoryContextPending is true...\n", getpid());
 		ProcessLogMemoryContextInterrupt();
+	}
 }
 
 /*

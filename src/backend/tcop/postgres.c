@@ -1021,6 +1021,7 @@ pg_plan_queries(List *querytrees, const char *query_string, int cursorOptions,
 static void
 exec_simple_query(const char *query_string)
 {
+	printf("%d Executing query %s\n", getpid(), query_string);
 	CommandDest dest = whereToSendOutput;
 	MemoryContext oldcontext;
 	List	   *parsetree_list;
@@ -1054,6 +1055,7 @@ exec_simple_query(const char *query_string)
 	 * will normally change current memory context.)
 	 */
 	start_xact_command();
+	printf("%d start xact command\n", getpid());
 
 	/*
 	 * Zap any pre-existing unnamed statement.  (While not strictly necessary,
@@ -1104,6 +1106,7 @@ exec_simple_query(const char *query_string)
 	 */
 	foreach(parsetree_item, parsetree_list)
 	{
+		printf("%d Executing query %s, address of iterm %p\n", getpid(), query_string, (void*) &parsetree_item);
 		RawStmt    *parsetree = lfirst_node(RawStmt, parsetree_item);
 		bool		snapshot_set = false;
 		CommandTag	commandTag;
@@ -1131,6 +1134,7 @@ exec_simple_query(const char *query_string)
 		set_ps_display_with_len(cmdtagname, cmdtaglen);
 
 		BeginCommand(commandTag, dest);
+		printf("%d Begin command %s\n", getpid(), cmdtagname);
 
 		/*
 		 * If we are in an aborted transaction, reject all commands except
@@ -1345,6 +1349,7 @@ exec_simple_query(const char *query_string)
 		 * aborted by error will not send an EndCommand report at all.)
 		 */
 		EndCommand(&qc, dest, false);
+		printf("%d End command\n", getpid());
 
 		/* Now we may drop the per-parsetree context, if one was created. */
 		if (per_parsetree_context)
@@ -1356,6 +1361,7 @@ exec_simple_query(const char *query_string)
 	 * something if the parsetree list was empty; otherwise the last loop
 	 * iteration already did it.)
 	 */
+	printf("%d finish_xact_command\n", getpid());
 	finish_xact_command();
 
 	/*
@@ -1389,6 +1395,7 @@ exec_simple_query(const char *query_string)
 	TRACE_POSTGRESQL_QUERY_DONE(query_string);
 
 	debug_query_string = NULL;
+	printf("%d Done executing query %s\n", getpid(), query_string);
 }
 
 /*
@@ -2802,12 +2809,14 @@ start_xact_command(void)
 static void
 finish_xact_command(void)
 {
+	printf("%d finish_xact_command\n", getpid());
 	/* cancel active statement timeout after each command */
 	disable_statement_timeout();
 
 	if (xact_started)
 	{
 		CommitTransactionCommand();
+		printf("%d CommitedTransactionCommand\n", getpid());
 
 #ifdef MEMORY_CONTEXT_CHECKING
 		/* Check all memory contexts that weren't freed during commit */
@@ -4246,6 +4255,7 @@ PostgresSingleUserMain(int argc, char *argv[],
 void
 PostgresMain(const char *dbname, const char *username)
 {
+	printf("%d postgressmain\n", getpid());
 	sigjmp_buf	local_sigjmp_buf;
 
 	/* these must be volatile to ensure state is preserved across longjmp: */

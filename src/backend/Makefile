@@ -39,9 +39,9 @@ endif
 
 OBJS = \
 	$(LOCALOBJS) \
-	$(SUBDIROBJS) \
-	$(top_builddir)/src/common/libpgcommon_srv.a \
-	$(top_builddir)/src/port/libpgport_srv.a
+	$(SUBDIROBJS)
+#	$(top_builddir)/src/common/libpgcommon_srv.a \
+#	$(top_builddir)/src/port/libpgport_srv.a
 
 # We put libpgport and libpgcommon into OBJS, so remove it from LIBS; also add
 # libldap and ICU
@@ -58,13 +58,36 @@ override LDFLAGS := $(LDFLAGS) $(LDFLAGS_EX) $(LDFLAGS_EX_BE)
 
 ##########################################################################
 
-all: submake-libpgport submake-catalog-headers submake-utils-headers postgres $(POSTGRES_IMP)
+all: submake-libpgport submake-catalog-headers submake-utils-headers libpostgres.a postgres $(POSTGRES_IMP)
 
 ifneq ($(PORTNAME), cygwin)
 ifneq ($(PORTNAME), win32)
 
-postgres: $(OBJS)
-	$(CC) $(CFLAGS) $(call expand_subsys,$^) $(LDFLAGS) $(LIBS) -o $@
+LIB_OBJS := $(filter-out main/objfiles.txt, $(OBJS)) #  postmaster/objfiles.txt jit/objfiles.txt
+# append $(top_builddir)/src/common/libpgcommon_srv.a to LIB_OBJS
+#LIB_OBJS += $(top_builddir)/src/common/libpgcommon_srv.a
+#LIB_OBJS += $(top_builddir)/src/port/libpgport_srv.a
+#LIB_OBJS += libpgport_srv.a
+#LIB_OBJS += libpgcommon_srv.a
+MAIN_OBJS = main/objfiles.txt tcop/objfiles.txt libpostgres.a $(top_builddir)/src/common/libpgcommon_srv.a $(top_builddir)/src/port/libpgport_srv.a
+
+#$(AR) $(AROPT) $@ $(call expand_subsys,$^)
+
+libpgcommon_srv.a:
+	cp $(top_builddir)/src/common/libpgcommon_srv.a .
+
+libpgport_srv.a:
+	cp $(top_builddir)/src/port/libpgport_srv.a .
+
+libpostgres.a: $(LIB_OBJS) 
+	$(AR) rcs $@ $(call expand_subsys,$^)
+
+# link to libpostgres.a
+postgres: libpostgres.a $(MAIN_OBJS)
+	$(CC) $(CFLAGS) $(call expand_subsys,$(MAIN_OBJS)) $(LDFLAGS) $(LIBS) -g2 -o $@
+
+# postgres: libpostgres.a ${OBJS}
+#	$(CC) $(CFLAGS) $(call expand_subsys,$(MAIN_OBJS)) $(LDFLAGS) $(LIBS) -o $@
 
 endif
 endif

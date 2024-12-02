@@ -215,6 +215,7 @@ StartupProcExit(int code, Datum arg)
 void
 StartupProcessMain(char *startup_data, size_t startup_data_len)
 {
+	printf("Starting StartupProcessMain..., pid %d\n", getpid());
 	Assert(startup_data_len == 0);
 
 	MyBackendType = B_STARTUP;
@@ -261,6 +262,7 @@ StartupProcessMain(char *startup_data, size_t startup_data_len)
 	 * Exit normally. Exit code 0 tells postmaster that we completed recovery
 	 * successfully.
 	 */
+	printf("Startup process exited normally\n");
 	proc_exit(0);
 }
 

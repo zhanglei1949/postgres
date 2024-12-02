@@ -86,6 +86,9 @@ int			WalWriterFlushAfter = DEFAULT_WAL_WRITER_FLUSH_AFTER;
 void
 WalWriterMain(char *startup_data, size_t startup_data_len)
 {
+	printf("Entering WalWriterMain...\n");
+	// print my process id
+	printf("My process id is: %d\n", getpid());
 	sigjmp_buf	local_sigjmp_buf;
 	MemoryContext walwriter_context;
 	int			left_till_hibernate;
@@ -122,6 +125,7 @@ WalWriterMain(char *startup_data, size_t startup_data_len)
 	 * possible memory leaks.  Formerly this code just ran in
 	 * TopMemoryContext, but resetting that would be a really bad idea.
 	 */
+	printf("%dCreating memory context for walwriter\n", getpid());
 	walwriter_context = AllocSetContextCreate(TopMemoryContext,
 											  "Wal Writer",
 											  ALLOCSET_DEFAULT_SIZES);
@@ -211,6 +215,7 @@ WalWriterMain(char *startup_data, size_t startup_data_len)
 	 * Advertise our proc number that backends can use to wake us up while
 	 * we're sleeping.
 	 */
+	printf("Setting walwriter process number...\n");
 	ProcGlobal->walwriterProc = MyProcNumber;
 
 	/*
