@@ -388,6 +388,7 @@ XLogNextRecord(XLogReaderState *state, char **errormsg)
 XLogRecord *
 XLogReadRecord(XLogReaderState *state, char **errormsg)
 {
+	printf("DEBUG: XLogReadRecord\n");
 	DecodedXLogRecord *decoded;
 
 	/*
@@ -527,6 +528,7 @@ XLogReadRecordAlloc(XLogReaderState *state, size_t xl_tot_len, bool allow_oversi
 static XLogPageReadResult
 XLogDecodeNextRecord(XLogReaderState *state, bool nonblocking)
 {
+	printf("DEBUG: XLogDecodeNextRecord\n");
 	XLogRecPtr	RecPtr;
 	XLogRecord *record;
 	XLogRecPtr	targetPagePtr;
@@ -656,8 +658,11 @@ restart:
 	if (targetRecOff <= XLOG_BLCKSZ - SizeOfXLogRecord)
 	{
 		if (!ValidXLogRecordHeader(state, RecPtr, state->DecodeRecPtr, record,
-								   randAccess))
+								   randAccess)){
+			printf("----Inside XLogDecodeNextRecord\n");
+			printf("Fail to validate record header\n");
 			goto err;
+		}
 		gotheader = true;
 	}
 	else
@@ -665,8 +670,9 @@ restart:
 		/* There may be no next page if it's too small. */
 		if (total_len < SizeOfXLogRecord)
 		{
+			printf("XLogDecodeNextRecord: total_len %d, SizeOfXLogRecord %d\n", total_len, SizeOfXLogRecord);
 			report_invalid_record(state,
-								  "invalid record length at %X/%X: expected at least %u, got %u",
+								  "XLogDecodeNextRecord invalid record length at %X/%X: expected at least %u, got %u",
 								  LSN_FORMAT_ARGS(RecPtr),
 								  (uint32) SizeOfXLogRecord, total_len);
 			goto err;
@@ -802,8 +808,11 @@ restart:
 			{
 				record = (XLogRecord *) state->readRecordBuf;
 				if (!ValidXLogRecordHeader(state, RecPtr, state->DecodeRecPtr,
-										   record, randAccess))
+										   record, randAccess)){
+					printf("----Inside XLogDecodeNextRecord\n");
+					printf("Fail to validate record header\n");
 					goto err;
+				}
 				gotheader = true;
 			}
 
@@ -914,6 +923,8 @@ restart:
 	}
 
 err:
+	printf("--------Inside XLogDecodeNextRecord err\n");
+	printf("jump to err handling, assembled: %d\n", assembled);
 	if (assembled)
 	{
 		/*
@@ -944,6 +955,8 @@ err:
 	 * failure.
 	 */
 	XLogReaderInvalReadState(state);
+	printf("--------Inside XLogDecodeNextRecord err end\n");
+	printf("Invalid record at %X/%X\n", LSN_FORMAT_ARGS(RecPtr));
 
 	/*
 	 * If an error was written to errormsg_buf, it'll be returned to the
@@ -965,6 +978,7 @@ err:
 DecodedXLogRecord *
 XLogReadAhead(XLogReaderState *state, bool nonblocking)
 {
+	printf("called XLogReadAhead\n");
 	XLogPageReadResult result;
 
 	if (state->errormsg_deferred)
@@ -1130,11 +1144,13 @@ ValidXLogRecordHeader(XLogReaderState *state, XLogRecPtr RecPtr,
 {
 	if (record->xl_tot_len < SizeOfXLogRecord)
 	{
+		printf("ValidXLogRecordHeader: total_len %d, SizeOfXLogRecord %d\n", record->xl_tot_len, SizeOfXLogRecord);
+		return false;
 		report_invalid_record(state,
-							  "invalid record length at %X/%X: expected at least %u, got %u",
+							  "ValidXLogRecordHeader invalid record length at %X/%X: expected at least %u, got %u",
 							  LSN_FORMAT_ARGS(RecPtr),
 							  (uint32) SizeOfXLogRecord, record->xl_tot_len);
-		return false;
+		
 	}
 	if (!RmgrIdIsValid(record->xl_rmid))
 	{
@@ -1382,6 +1398,7 @@ XLogReaderResetError(XLogReaderState *state)
 XLogRecPtr
 XLogFindNextRecord(XLogReaderState *state, XLogRecPtr RecPtr)
 {
+	printf("called XLogFindNextRecord\n");
 	XLogRecPtr	tmpRecPtr;
 	XLogRecPtr	found = InvalidXLogRecPtr;
 	XLogPageHeader header;

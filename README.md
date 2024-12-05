@@ -19,3 +19,12 @@ about building PostgreSQL from the source code can be found at
 The latest version of this software, and related software, may be
 obtained at <https://www.postgresql.org/download/>.  For more information
 look at our web site located at <https://www.postgresql.org/>.
+
+
+./postgres -D /workspaces/data
+./configure --prefix=/opt/postgres --without-readline --without-icu
+./createdb graphscope
+./psql
+
+export CFLAGS=' -enable_debug -O0 -g -rdynamic -pedantic' 
+export CFLAGS=' -enable_debug -O0 -g -rdynamic -pedantic -Wextra'

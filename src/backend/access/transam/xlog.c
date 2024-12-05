@@ -2301,12 +2301,16 @@ XLogCheckpointNeeded(XLogSegNo new_segno)
 	return false;
 }
 
-void print_stacktrace(void) {
-    size_t size;
+ void print_stacktrace(void) {
+    char **strings;
+    size_t i, size;
     enum Constexpr { MAX_SIZE = 1024 };
     void *array[MAX_SIZE];
     size = backtrace(array, MAX_SIZE);
-    backtrace_symbols_fd(array, size, STDOUT_FILENO);
+    strings = backtrace_symbols(array, size);
+    for (i = 0; i < size; i++)
+        printf("%s\n", strings[i]);
+    free(strings);
 }
 
 /*
@@ -2325,7 +2329,6 @@ static void
 XLogWrite(XLogwrtRqst WriteRqst, TimeLineID tli, bool flexible)
 {
 	printf("%d called XLogWrite\n", getpid());
-	print_stacktrace();
 	bool		ispartialpage;
 	bool		last_iteration;
 	bool		finishing_seg;
@@ -3006,7 +3009,6 @@ XLogFlush(XLogRecPtr record)
 bool
 XLogBackgroundFlush(void)
 {
-	printf("%d called XLogBackgroundFlush\n", getpid());
 	XLogwrtRqst WriteRqst;
 	bool		flexible = true;
 	static TimestampTz lastflush;
@@ -5584,9 +5586,14 @@ StartupXLOG(void)
 	 * starting checkpoint, and sets InRecovery and ArchiveRecoveryRequested.
 	 * It also applies the tablespace map file, if any.
 	 */
+	printf("Before InitWalRecovery\n");
 	InitWalRecovery(ControlFile, &wasShutdown,
 					&haveBackupLabel, &haveTblspcMap);
 	checkPoint = ControlFile->checkPointCopy;
+	printf("After InitWalRecovery, checkpoint %d, wasShutDown %d, haveBackupLalebl %d \n", checkPoint.redo, 
+			wasShutdown, haveBackupLabel);
+	printf("next xid %d, next oid %d, next multi %d, next multi offset %d, oldest xid %d, oldest xid db %d, oldest multi %d, oldest multi db %d, oldest commit ts xid %d, newest commit ts xid %d, time %d, oldest active xid %d\n",
+			checkPoint.nextXid, checkPoint.nextOid, checkPoint.nextMulti, checkPoint.nextMultiOffset, checkPoint.oldestXid, checkPoint.oldestXidDB, checkPoint.oldestMulti, checkPoint.oldestMultiDB, checkPoint.oldestCommitTsXid, checkPoint.newestCommitTsXid, checkPoint.time, checkPoint.oldestActiveXid);
 
 	/* initialize shared memory variables from the checkpoint record */
 	TransamVariables->nextXid = checkPoint.nextXid;
@@ -5872,6 +5879,8 @@ StartupXLOG(void)
 	else
 		performedWalRecovery = false;
 
+	printf("performedWalRecovery %d\n", performedWalRecovery);
+
 	/*
 	 * Finish WAL recovery.
 	 */
@@ -5880,6 +5889,7 @@ StartupXLOG(void)
 	EndOfLogTLI = endOfRecoveryInfo->endOfLogTLI;
 	abortedRecPtr = endOfRecoveryInfo->abortedRecPtr;
 	missingContrecPtr = endOfRecoveryInfo->missingContrecPtr;
+	printf("End of recovery, end of log %d, end of log tli %d, aborted rec ptr %d, missing cont rec ptr %d\n", EndOfLog, EndOfLogTLI, abortedRecPtr, missingContrecPtr);
 
 	/*
 	 * Reset ps status display, so as no information related to recovery shows
@@ -6127,7 +6137,9 @@ StartupXLOG(void)
 	RecoverPreparedTransactions();
 
 	/* Shut down xlogreader */
+	printf("Before ShutdownWalRecovery\n");
 	ShutdownWalRecovery();
+	printf("After ShutdownWalRecovery\n");
 
 	/* Enable WAL writes for this backend only. */
 	LocalSetXLogInsertAllowed();
@@ -6150,13 +6162,16 @@ StartupXLOG(void)
 	/*
 	 * Emit checkpoint or end-of-recovery record in XLOG, if required.
 	 */
-	if (performedWalRecovery)
-		promoted = PerformRecoveryXLogAction();
+	if (performedWalRecovery){
+		printf("PerformRecoveryXLogAction\n");
+		// promoted = PerformRecoveryXLogAction();
+	}
 
 	/*
 	 * If any of the critical GUCs have changed, log them before we allow
 	 * backends to write WAL.
 	 */
+	printf("Report Xlog parameters\n");
 	XLogReportParameters();
 
 	/* If this is archive recovery, perform post-recovery cleanup actions. */
@@ -6210,6 +6225,7 @@ StartupXLOG(void)
 	 * If there were cascading standby servers connected to us, nudge any wal
 	 * sender processes to notice that we've been promoted.
 	 */
+	printf("Waking up walsenders\n");
 	WalSndWakeup(true, true);
 
 	/*
@@ -6220,6 +6236,7 @@ StartupXLOG(void)
 	 */
 	if (promoted)
 		RequestCheckpoint(CHECKPOINT_FORCE);
+	printf("Finish StartupXLOG\n");
 }
 
 /*
@@ -6646,8 +6663,10 @@ ShutdownXLOG(int code, Datum arg)
 	 */
 	WalSndWaitStopping();
 
-	if (RecoveryInProgress())
+	if (RecoveryInProgress()){
+		printf("CreateRestartPoint in ShutdownXLOG\n");
 		CreateRestartPoint(CHECKPOINT_IS_SHUTDOWN | CHECKPOINT_IMMEDIATE);
+	}
 	else
 	{
 		/*
@@ -6659,7 +6678,12 @@ ShutdownXLOG(int code, Datum arg)
 		if (XLogArchivingActive())
 			RequestXLogSwitch(false);
 		// printf("Don't create checkpoint\n");
-		CreateCheckPoint(CHECKPOINT_IS_SHUTDOWN | CHECKPOINT_IMMEDIATE);
+		printf("Not Creating checkpoint in ShutdownXLOG\n");
+		// get the value of enviroment variable, IS_INITDB
+		// char *is_initdb = getenv("IS_INITDB");
+		// if (is_initdb != NULL && strcmp(is_initdb, "true") == 0)
+		// CreateCheckPoint(CHECKPOINT_IS_SHUTDOWN | CHECKPOINT_IMMEDIATE);
+		// CreateCheckPoint(CHECKPOINT_IS_SHUTDOWN | CHECKPOINT_IMMEDIATE);
 	}
 }
 
@@ -6909,6 +6933,7 @@ update_checkpoint_display(int flags, bool restartpoint, bool reset)
 bool
 CreateCheckPoint(int flags)
 {
+	printf("CreateCheckPoint\n");
 	bool		shutdown;
 	CheckPoint	checkPoint;
 	XLogRecPtr	recptr;
@@ -7611,6 +7636,7 @@ RecoveryRestartPoint(const CheckPoint *checkPoint, XLogReaderState *record)
 bool
 CreateRestartPoint(int flags)
 {
+	printf("CreateRestartPoint\n");
 	XLogRecPtr	lastCheckPointRecPtr;
 	XLogRecPtr	lastCheckPointEndPtr;
 	CheckPoint	lastCheckPoint;
@@ -8603,6 +8629,9 @@ xlog_redo(XLogReaderState *record)
 	else if (info == XLOG_CHECKPOINT_REDO)
 	{
 		/* nothing to do here, just for informational purposes */
+	}
+	else if (info == XLOG_FLEX_WAL_REDO){
+		printf("Got XLOG_FLEX_WAL_REDO\n");
 	}
 }
 

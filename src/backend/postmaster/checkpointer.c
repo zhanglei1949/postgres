@@ -381,6 +381,7 @@ CheckpointerMain(char *startup_data, size_t startup_data_len)
 		/*
 		 * Do a checkpoint if requested.
 		 */
+		do_checkpoint = false;
 		if (do_checkpoint)
 		{
 			bool		ckpt_performed = false;
@@ -459,10 +460,14 @@ CheckpointerMain(char *startup_data, size_t startup_data_len)
 			/*
 			 * Do the checkpoint.
 			 */
-			if (!do_restartpoint)
+			if (!do_restartpoint){
+				printf("Create Checkpoint in Checkpointer main\n");
 				ckpt_performed = CreateCheckPoint(flags);
-			else
+			}
+			else{
+				printf("Create RestartCheckpoint in Checkpointer main\n");
 				ckpt_performed = CreateRestartPoint(flags);
+			}
 
 			/*
 			 * After any checkpoint, free all smgr objects.  Otherwise we
@@ -605,6 +610,7 @@ HandleCheckpointerInterrupts(void)
 		 * out pending statistic.
 		 */
 		PendingCheckpointerStats.num_requested++;
+		printf("ShutdownXLOG in HandleCheckpointerInterrupts\n");
 		ShutdownXLOG(0, 0);
 		pgstat_report_checkpointer();
 		pgstat_report_wal(true);
@@ -964,6 +970,7 @@ RequestCheckpoint(int flags)
 		 * There's no point in doing slow checkpoints in a standalone backend,
 		 * because there's no other backends the checkpoint could disrupt.
 		 */
+		printf("Create Checkpoint in RequestCheckpoint\n");
 		CreateCheckPoint(flags | CHECKPOINT_IMMEDIATE);
 
 		/* Free all smgr objects, as CheckpointerMain() normally would. */

@@ -218,6 +218,9 @@ xlog_identify(uint8 info)
 		case XLOG_CHECKPOINT_REDO:
 			id = "CHECKPOINT_REDO";
 			break;
+		case XLOG_FLEX_WAL_REDO:
+			id = "FLEX_WAL_REDO";
+			break;
 	}
 
 	return id;

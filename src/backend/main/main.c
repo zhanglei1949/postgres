@@ -56,7 +56,7 @@ static void check_root(const char *progname);
 int
 main(int argc, char *argv[])
 {
-	printf("Entering main...");
+	// printf("Entering main...");
 	bool		do_check_root = true;
 
 	reached_main = true;

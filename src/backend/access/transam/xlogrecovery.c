@@ -558,6 +558,7 @@ InitWalRecovery(ControlFileData *ControlFile, bool *wasShutdown_ptr,
 									  .segment_open = NULL,
 									  .segment_close = wal_segment_close),
 						   private);
+	printf("xlogreader: %p\n", xlogreader);
 	if (!xlogreader)
 		ereport(ERROR,
 				(errcode(ERRCODE_OUT_OF_MEMORY),
@@ -592,6 +593,7 @@ InitWalRecovery(ControlFileData *ControlFile, bool *wasShutdown_ptr,
 	if (read_backup_label(&CheckPointLoc, &CheckPointTLI, &backupEndRequired,
 						  &backupFromStandby))
 	{
+		printf("read_backup_label\n");
 		List	   *tablespaces = NIL;
 
 		/*
@@ -703,6 +705,7 @@ InitWalRecovery(ControlFileData *ControlFile, bool *wasShutdown_ptr,
 	}
 	else
 	{
+		printf("No backup_label\n");
 		/* No backup_label file has been found if we are here. */
 
 		/*
@@ -777,6 +780,7 @@ InitWalRecovery(ControlFileData *ControlFile, bool *wasShutdown_ptr,
 		RedoStartTLI = ControlFile->checkPointCopy.ThisTimeLineID;
 		record = ReadCheckpointRecord(xlogprefetcher, CheckPointLoc,
 									  CheckPointTLI);
+		printf("--- got a checkpoint record\n");
 		if (record != NULL)
 		{
 			ereport(DEBUG1,
@@ -799,6 +803,7 @@ InitWalRecovery(ControlFileData *ControlFile, bool *wasShutdown_ptr,
 		wasShutdown = ((record->xl_info & ~XLR_INFO_MASK) == XLOG_CHECKPOINT_SHUTDOWN);
 	}
 
+	printf("checkpoint record is at %X/%X\n", LSN_FORMAT_ARGS(CheckPointLoc));
 	if (ArchiveRecoveryRequested)
 	{
 		if (StandbyModeRequested)
@@ -902,6 +907,8 @@ InitWalRecovery(ControlFileData *ControlFile, bool *wasShutdown_ptr,
 	 * have been a clean shutdown and we did not have a recovery signal file,
 	 * then assume no recovery needed.
 	 */
+	printf("redo %d, CheckPointLoc %d\n", checkPoint.redo, CheckPointLoc);
+	printf("redo is at %X/%X. checkpoint record is at %X/%X\n", LSN_FORMAT_ARGS(checkPoint.redo), LSN_FORMAT_ARGS(CheckPointLoc));
 	if (checkPoint.redo < CheckPointLoc)
 	{
 		if (wasShutdown)
@@ -909,8 +916,10 @@ InitWalRecovery(ControlFileData *ControlFile, bool *wasShutdown_ptr,
 					(errmsg("invalid redo record in shutdown checkpoint")));
 		InRecovery = true;
 	}
-	else if (ControlFile->state != DB_SHUTDOWNED)
+	else if (ControlFile->state != DB_SHUTDOWNED){
+		printf("set InRecovery to true since ControlFile->state is %d\n", ControlFile->state);
 		InRecovery = true;
+	}
 	else if (ArchiveRecoveryRequested)
 	{
 		/* force recovery due to presence of recovery signal file */
@@ -928,6 +937,8 @@ InitWalRecovery(ControlFileData *ControlFile, bool *wasShutdown_ptr,
 	 */
 	if (InRecovery)
 	{
+		printf("Entering recovery with InArchiveRecovery %d\n", InArchiveRecovery);
+		printf("[ ----");
 		if (InArchiveRecovery)
 		{
 			ControlFile->state = DB_IN_ARCHIVE_RECOVERY;
@@ -988,6 +999,7 @@ InitWalRecovery(ControlFileData *ControlFile, bool *wasShutdown_ptr,
 				ControlFile->backupEndPoint = ControlFile->minRecoveryPoint;
 			}
 		}
+		printf("---]\n");
 	}
 
 	/* remember these, so that we know when we have reached consistency */
@@ -1014,6 +1026,7 @@ InitWalRecovery(ControlFileData *ControlFile, bool *wasShutdown_ptr,
 	*wasShutdown_ptr = wasShutdown;
 	*haveBackupLabel_ptr = haveBackupLabel;
 	*haveTblspcMap_ptr = haveTblspcMap;
+	printf("InitWalRecovery done\n");
 }
 
 /*
@@ -1651,6 +1664,7 @@ ShutdownWalRecovery(void)
 void
 PerformWalRecovery(void)
 {
+	printf("PerformWalRecovery\n");
 	XLogRecord *record;
 	bool		reachedRecoveryTarget = false;
 	TimeLineID	replayTLI;
@@ -1703,8 +1717,12 @@ PerformWalRecovery(void)
 	{
 		/* back up to find the record */
 		replayTLI = RedoStartTLI;
+		printf("---------------");
+		printf("in PerformWalRecovery()");
 		XLogPrefetcherBeginRead(xlogprefetcher, RedoStartLSN);
 		record = ReadRecord(xlogprefetcher, PANIC, false, replayTLI);
+		printf("---------------");
+		printf("Got a record: %d\n", record->xl_tot_len);
 
 		/*
 		 * If a checkpoint record's redo pointer points back to an earlier
@@ -1719,6 +1737,8 @@ PerformWalRecovery(void)
 	}
 	else
 	{
+		printf("Just have to read next record after CheckPoint\n");
+		printf("------------------");
 		/* just have to read next record after CheckPoint */
 		Assert(xlogreader->ReadRecPtr == CheckPointLoc);
 		replayTLI = CheckPointTLI;
@@ -1749,6 +1769,7 @@ PerformWalRecovery(void)
 		 */
 		do
 		{
+			printf("------> Got record, total len: %d<-------\n", record->xl_tot_len);
 			if (!StandbyMode)
 				ereport_startup_progress("redo in progress, elapsed time: %ld.%02d s, current LSN: %X/%X",
 										 LSN_FORMAT_ARGS(xlogreader->ReadRecPtr));
@@ -1830,7 +1851,12 @@ PerformWalRecovery(void)
 
 			/* Else, try to fetch the next WAL record */
 			record = ReadRecord(xlogprefetcher, LOG, false, replayTLI);
+			if (record){
+				printf("GOt other record: %d\n", record->xl_tot_len);
+			}
 		} while (record != NULL);
+
+		printf("Out side of main redo apply loop\n");
 
 		/*
 		 * end of main redo apply loop
@@ -1838,6 +1864,7 @@ PerformWalRecovery(void)
 
 		if (reachedRecoveryTarget)
 		{
+			printf("Reached Recovery Target\n");
 			if (!reachedConsistency)
 				ereport(FATAL,
 						(errmsg("requested recovery stop point is before consistent recovery point")));
@@ -1908,6 +1935,7 @@ PerformWalRecovery(void)
 static void
 ApplyWalRecord(XLogReaderState *xlogreader, XLogRecord *record, TimeLineID *replayTLI)
 {
+	printf("Apply Wal Record %d, timeline %d\n", record->xl_tot_len, *replayTLI);
 	ErrorContextCallback errcallback;
 	bool		switchedTLI = false;
 
@@ -1920,6 +1948,7 @@ ApplyWalRecord(XLogReaderState *xlogreader, XLogRecord *record, TimeLineID *repl
 	/*
 	 * TransamVariables->nextXid must be beyond record's xid.
 	 */
+	printf("Advance next transaction id, cur %d\n", record->xl_xid);
 	AdvanceNextFullTransactionIdPastXid(record->xl_xid);
 
 	/*
@@ -1930,6 +1959,7 @@ ApplyWalRecord(XLogReaderState *xlogreader, XLogRecord *record, TimeLineID *repl
 	 * recovery point's TLI if recovery stops after this record, is set
 	 * correctly.
 	 */
+	printf("Record rmid %d\n", record->xl_rmid);
 	if (record->xl_rmid == RM_XLOG_ID)
 	{
 		TimeLineID	newReplayTLI = *replayTLI;
@@ -1978,18 +2008,24 @@ ApplyWalRecord(XLogReaderState *xlogreader, XLogRecord *record, TimeLineID *repl
 	 * If we are attempting to enter Hot Standby mode, process XIDs we see
 	 */
 	if (standbyState >= STANDBY_INITIALIZED &&
-		TransactionIdIsValid(record->xl_xid))
+		TransactionIdIsValid(record->xl_xid)){
+		printf("RecordKnownAssignedTransactionIds: %d\n", record->xl_xid);
 		RecordKnownAssignedTransactionIds(record->xl_xid);
+	}
 
 	/*
 	 * Some XLOG record types that are related to recovery are processed
 	 * directly here, rather than in xlog_redo()
 	 */
-	if (record->xl_rmid == RM_XLOG_ID)
+	if (record->xl_rmid == RM_XLOG_ID){
+		printf("xlogrecovery_redo: record xl_rmid %d\n", record->xl_rmid);
 		xlogrecovery_redo(xlogreader, *replayTLI);
+	}
 
 	/* Now apply the WAL record itself */
+	printf("Try to redo the record:\n");
 	GetRmgr(record->xl_rmid).rm_redo(xlogreader);
+	printf("Finished redoing the record\n");
 
 	/*
 	 * After redo, check whether the backup pages associated with the WAL
@@ -2063,6 +2099,7 @@ ApplyWalRecord(XLogReaderState *xlogreader, XLogRecord *record, TimeLineID *repl
 		/* Reset the prefetcher. */
 		XLogPrefetchReconfigure();
 	}
+	printf("Finished ApplyWalRecord\n");
 }
 
 /*
@@ -3149,10 +3186,11 @@ ReadRecord(XLogPrefetcher *xlogprefetcher, int emode,
 	for (;;)
 	{
 		char	   *errormsg;
-
+		printf("In ReadRecord, try to call XLogPrefetcherReadRecord \n");
 		record = XLogPrefetcherReadRecord(xlogprefetcher, &errormsg);
 		if (record == NULL)
 		{
+			printf("Found a null record\n");
 			/*
 			 * When we find that WAL ends in an incomplete record, keep track
 			 * of that record.  After recovery is done, we'll write a record
@@ -3184,9 +3222,11 @@ ReadRecord(XLogPrefetcher *xlogprefetcher, int emode,
 			 * StandbyMode that only happens if we have been triggered, so we
 			 * shouldn't loop anymore in that case.
 			 */
-			if (errormsg)
+			if (errormsg){
+				printf("Found an error message: %s\n", errormsg);
 				ereport(emode_for_corrupt_record(emode, xlogreader->EndRecPtr),
 						(errmsg_internal("%s", errormsg) /* already translated */ ));
+			}
 		}
 
 		/*
@@ -3219,6 +3259,8 @@ ReadRecord(XLogPrefetcher *xlogprefetcher, int emode,
 		}
 		else
 		{
+			printf("[[[[[[[[]]]]]]]]\n");
+			printf("In ReadRecord, record is NULL\n");
 			/* No valid record available from this source */
 			lastSourceFailed = true;
 
@@ -3237,6 +3279,7 @@ ReadRecord(XLogPrefetcher *xlogprefetcher, int emode,
 			if (!InArchiveRecovery && ArchiveRecoveryRequested &&
 				!fetching_ckpt)
 			{
+				printf("In ReadRecord, ArchiveRecoveryRequested is true\n");
 				ereport(DEBUG1,
 						(errmsg_internal("reached end of WAL in pg_wal, entering archive recovery")));
 				InArchiveRecovery = true;
@@ -3260,12 +3303,17 @@ ReadRecord(XLogPrefetcher *xlogprefetcher, int emode,
 			}
 
 			/* In standby mode, loop back to retry. Otherwise, give up. */
-			if (StandbyMode && !CheckForStandbyTrigger())
+			if (StandbyMode && !CheckForStandbyTrigger()){
+				printf("In standby mode, loop back to retry\n");
 				continue;
-			else
+			}
+			else{
+				printf("Return NULL as standby mode is false\n");
 				return NULL;
+			}
 		}
 	}
+	printf("Finially outside the loop of ReadRecord\n");
 }
 
 /*
@@ -4050,6 +4098,8 @@ static XLogRecord *
 ReadCheckpointRecord(XLogPrefetcher *xlogprefetcher, XLogRecPtr RecPtr,
 					 TimeLineID replayTLI)
 {
+	printf("--------------------\n");
+	printf("DEBUG: READ CHECKPOINT RECORD\n");
 	XLogRecord *record;
 	uint8		info;
 

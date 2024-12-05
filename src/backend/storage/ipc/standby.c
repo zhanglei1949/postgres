@@ -1161,6 +1161,7 @@ StandbyReleaseOldLocks(TransactionId oldxid)
 void
 standby_redo(XLogReaderState *record)
 {
+	printf("redo standby record: %d\n", record->readLen);
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 
 	/* Backup blocks are not used in standby records */
@@ -1340,6 +1341,7 @@ LogStandbySnapshot(void)
 static XLogRecPtr
 LogCurrentRunningXacts(RunningTransactions CurrRunningXacts)
 {
+	printf("LogCurrentRunningXacts\n");
 	xl_running_xacts xlrec;
 	XLogRecPtr	recptr;
 

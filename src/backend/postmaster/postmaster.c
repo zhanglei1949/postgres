@@ -3186,14 +3186,14 @@ LaunchMissingBackgroundProcesses(void)
 	 * autovacuum might update relfrozenxid for empty tables before the
 	 * physical files are put in place.
 	 */
-	if (!IsBinaryUpgrade && AutoVacPID == 0 &&
-		(AutoVacuumingActive() || start_autovac_launcher) &&
-		pmState == PM_RUN)
-	{
-		AutoVacPID = StartChildProcess(B_AUTOVAC_LAUNCHER);
-		if (AutoVacPID != 0)
-			start_autovac_launcher = false; /* signal processed */
-	}
+	// if (!IsBinaryUpgrade && AutoVacPID == 0 &&
+	// 	(AutoVacuumingActive() || start_autovac_launcher) &&
+	// 	pmState == PM_RUN)
+	// {
+	// 	AutoVacPID = StartChildProcess(B_AUTOVAC_LAUNCHER);
+	// 	if (AutoVacPID != 0)
+	// 		start_autovac_launcher = false; /* signal processed */
+	// }
 
 	/*
 	 * If WAL archiving is enabled always, we are allowed to start archiver

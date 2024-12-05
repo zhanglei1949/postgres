@@ -458,6 +458,7 @@ XLogPrefetcherComputeStats(XLogPrefetcher *prefetcher)
 static LsnReadQueueNextStatus
 XLogPrefetcherNextBlock(uintptr_t pgsr_private, XLogRecPtr *lsn)
 {
+	printf("----------------- Inside XLogPrefetcherNextBlock -----------------\n");
 	XLogPrefetcher *prefetcher = (XLogPrefetcher *) pgsr_private;
 	XLogReaderState *reader = prefetcher->reader;
 	XLogRecPtr	replaying_lsn = reader->ReadRecPtr;
@@ -490,6 +491,7 @@ XLogPrefetcherNextBlock(uintptr_t pgsr_private, XLogRecPtr *lsn)
 			record = XLogReadAhead(prefetcher->reader, nonblocking);
 			if (record == NULL)
 			{
+				printf("No more record is available\n");
 				/*
 				 * We can't read any more, due to an error or lack of data in
 				 * nonblocking mode.  Don't try to read ahead again until
@@ -813,6 +815,8 @@ XLogPrefetcherNextBlock(uintptr_t pgsr_private, XLogRecPtr *lsn)
 
 		/* Advance to the next record. */
 		prefetcher->record = NULL;
+		printf("Advance to the next record\n");
+		printf("----------------- End of XLogPrefetcherNextBlock -----------------\n");
 	}
 	pg_unreachable();
 }
@@ -980,6 +984,7 @@ XLogPrefetcherBeginRead(XLogPrefetcher *prefetcher, XLogRecPtr recPtr)
 XLogRecord *
 XLogPrefetcherReadRecord(XLogPrefetcher *prefetcher, char **errmsg)
 {
+	printf("entering XLogPrefetcherReadRecord\n");
 	DecodedXLogRecord *record;
 	XLogRecPtr	replayed_up_to;
 
@@ -1046,7 +1051,9 @@ XLogPrefetcherReadRecord(XLogPrefetcher *prefetcher, char **errmsg)
 	}
 
 	/* Read the next record. */
+	printf("XXXXXXXX\n");
 	record = XLogNextRecord(prefetcher->reader, errmsg);
+	printf("YYYYYYYY, record = %p\n", record);
 	if (!record)
 		return NULL;
 

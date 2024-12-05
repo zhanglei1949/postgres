@@ -1309,6 +1309,7 @@ AtSubStart_ResourceOwner(void)
  * if the xact has no XID.  (We compute that here just because it's easier.)
  *
  * If you change this function, see RecordTransactionCommitPrepared also.
+ * Wals are commit in this function.
  */
 static TransactionId
 RecordTransactionCommit(void)
@@ -1352,6 +1353,7 @@ RecordTransactionCommit(void)
 	 */
 	if (!markXidCommitted)
 	{
+		printf("%d markXidCommitted false\n", getpid());
 		/*
 		 * We expect that every RelationDropStorage is followed by a catalog
 		 * update, and hence XID assignment, so we shouldn't get here with any
@@ -1405,6 +1407,7 @@ RecordTransactionCommit(void)
 	}
 	else
 	{
+		printf("%d markXidCommitted true\n", getpid());
 		bool		replorigin;
 
 		/*
@@ -1438,6 +1441,7 @@ RecordTransactionCommit(void)
 		/*
 		 * Insert the commit XLOG record.
 		 */
+		printf("%d XactLogCommitRecord\n", getpid());
 		XactLogCommitRecord(GetCurrentTransactionStopTimestamp(),
 							nchildren, children, nrels, rels,
 							ndroppedstats, droppedstats,
@@ -1445,6 +1449,7 @@ RecordTransactionCommit(void)
 							RelcacheInitFileInval,
 							MyXactFlags,
 							InvalidTransactionId, NULL /* plain commit */ );
+		printf("%d finish XactLogCommitRecord\n", getpid());
 
 		if (replorigin)
 			/* Move LSNs forward for this replication origin */
@@ -1498,6 +1503,7 @@ RecordTransactionCommit(void)
 		 synchronous_commit > SYNCHRONOUS_COMMIT_OFF) ||
 		forceSyncCommit || nrels > 0)
 	{
+		printf("%d commit sync", getpid());
 		XLogFlush(XactLastRecEnd);
 
 		/*
@@ -2312,14 +2318,18 @@ CommitTransaction(void)
 	 * Let ON COMMIT management do its thing (must happen after closing
 	 * cursors, to avoid dangling-reference problems)
 	 */
+	printf("%d PreCommit_on_commit_actions\n", getpid());
 	PreCommit_on_commit_actions();
+	printf("%d PreCommit_on_commit_actions done\n", getpid());
 
 	/*
 	 * Synchronize files that are created and not WAL-logged during this
 	 * transaction. This must happen before AtEOXact_RelationMap(), so that we
 	 * don't see committed-but-broken files after a crash.
 	 */
+	printf("%d smgrDoPendingSyncs\n", getpid());
 	smgrDoPendingSyncs(true, is_parallel_worker);
+	printf("%d smgrDoPendingSyncs done\n", getpid());
 
 	/* close large objects before lower-level cleanup */
 	AtEOXact_LargeObject(true);
@@ -2366,7 +2376,9 @@ CommitTransaction(void)
 		 * We need to mark our XIDs as committed in pg_xact.  This is where we
 		 * durably commit.
 		 */
+		printf("%d RecordTransactionCommit\n", getpid());
 		latestXid = RecordTransactionCommit();
+		printf("%d RecordTransactionCommit done\n", getpid());
 	}
 	else
 	{
@@ -2505,6 +2517,7 @@ CommitTransaction(void)
 	s->state = TRANS_DEFAULT;
 
 	RESUME_INTERRUPTS();
+	printf("%d Finish commit Transaction\n", getpid());
 }
 
 
@@ -2516,6 +2529,7 @@ CommitTransaction(void)
 static void
 PrepareTransaction(void)
 {
+	printf("%d Prepare Transaction\n", getpid());
 	TransactionState s = CurrentTransactionState;
 	TransactionId xid = GetCurrentTransactionId();
 	GlobalTransaction gxact;
@@ -3199,6 +3213,7 @@ CommitTransactionCommandInternal(void)
 			 * transaction commit, and return to the idle state.
 			 */
 		case TBLOCK_STARTED:
+			printf("%d blockState TBLOCK_STARTED\n", getpid());
 			CommitTransaction();
 			s->blockState = TBLOCK_DEFAULT;
 			break;
@@ -5833,6 +5848,7 @@ XactLogCommitRecord(TimestampTz commit_time,
 					int xactflags, TransactionId twophase_xid,
 					const char *twophase_gid)
 {
+	printf("%d XactLogCommitRecord\n", getpid());
 	xl_xact_commit xlrec;
 	xl_xact_xinfo xl_xinfo;
 	xl_xact_dbinfo xl_dbinfo;

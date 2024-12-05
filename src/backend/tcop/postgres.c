@@ -32,6 +32,8 @@
 #endif
 
 #include "access/parallel.h"
+#include "access/heapam_xlog.h"
+#include "catalog/pg_control.h"
 #include "access/printtup.h"
 #include "access/xact.h"
 #include "catalog/pg_type.h"
@@ -1012,6 +1014,19 @@ pg_plan_queries(List *querytrees, const char *query_string, int cursorOptions,
 	return stmt_list;
 }
 
+static void 
+flex_exec_simple_query(const char* query_string) {
+	printf("In flex_exec_simple_query\n");
+	CommandDest dest = whereToSendOutput;
+	// Write xlog
+	XLogBeginInsert();
+	XLogRegisterData((char *) "Hello World", 11);
+	XLogRecPtr	recptr = XLogInsert(RM_XLOG_ID, XLOG_FLEX_WAL_REDO);
+	XLogFlush(recptr);
+	NullCommand(dest);
+	return ;
+}
+
 
 /*
  * exec_simple_query
@@ -1154,6 +1169,7 @@ exec_simple_query(const char *query_string)
 
 		/* Make sure we are in a transaction command */
 		start_xact_command();
+		printf("%d Start xact command, %d\n", getpid(), __LINE__);
 
 		/*
 		 * If using an implicit transaction block, and we're not already in a
@@ -1226,6 +1242,7 @@ exec_simple_query(const char *query_string)
 		 * Create unnamed portal to run the query or queries in. If there
 		 * already is one, silently drop it.
 		 */
+		printf("%d Create portal\n", getpid());
 		portal = CreatePortal("", true, true);
 		/* Don't display the portal in pg_cursors */
 		portal->visible = false;
@@ -1242,6 +1259,7 @@ exec_simple_query(const char *query_string)
 						  plantree_list,
 						  NULL);
 
+		printf("%d Define query, now to start\n", getpid());
 		/*
 		 * Start the portal.  No parameters here.
 		 */
@@ -1291,6 +1309,7 @@ exec_simple_query(const char *query_string)
 						 receiver,
 						 receiver,
 						 &qc);
+		printf("Finish portal run\n");
 
 		receiver->rDestroy(receiver);
 
@@ -4255,7 +4274,7 @@ PostgresSingleUserMain(int argc, char *argv[],
 void
 PostgresMain(const char *dbname, const char *username)
 {
-	printf("%d postgressmain\n", getpid());
+	printf("%d postgressmain, %s, %s\n", getpid(), dbname, username);
 	sigjmp_buf	local_sigjmp_buf;
 
 	/* these must be volatile to ensure state is preserved across longjmp: */
@@ -4791,6 +4810,7 @@ PostgresMain(const char *dbname, const char *username)
 					SetCurrentStatementStartTimestamp();
 
 					query_string = pq_getmsgstring(&input_message);
+					printf("first char: %c, query: %s\n", firstchar, query_string);
 					pq_getmsgend(&input_message);
 
 					if (am_walsender)
@@ -4798,8 +4818,10 @@ PostgresMain(const char *dbname, const char *username)
 						if (!exec_replication_command(query_string))
 							exec_simple_query(query_string);
 					}
-					else
-						exec_simple_query(query_string);
+					else{
+						// exec_simple_query(query_string);
+						flex_exec_simple_query(query_string);
+					}
 
 					valgrind_report_error_query(query_string);
 

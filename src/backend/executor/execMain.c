@@ -1617,6 +1617,7 @@ ExecutePlan(EState *estate,
 			DestReceiver *dest,
 			bool execute_once)
 {
+	printf("I am in ExecutePlan\n");
 	TupleTableSlot *slot;
 	uint64		current_tuple_count;
 
@@ -1646,6 +1647,7 @@ ExecutePlan(EState *estate,
 	 */
 	for (;;)
 	{
+		printf("I am in ExecutePlan loop\n");
 		/* Reset the per-output-tuple exprcontext */
 		ResetPerTupleExprContext(estate);
 

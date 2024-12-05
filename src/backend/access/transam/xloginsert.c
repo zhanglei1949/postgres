@@ -366,7 +366,7 @@ XLogRegisterData(const char *data, uint32 len)
 	XLogRecData *rdata;
 
 	Assert(begininsert_called);
-
+	printf("%d num_rdatas: %d max_rdatas: %d\n", getpid(), num_rdatas, max_rdatas);
 	if (num_rdatas >= max_rdatas)
 		ereport(ERROR,
 				(errmsg_internal("too much WAL data"),
@@ -473,6 +473,7 @@ XLogSetRecordFlags(uint8 flags)
 XLogRecPtr
 XLogInsert(RmgrId rmid, uint8 info)
 {
+	printf("%d XLogInsert\n", getpid());
 	XLogRecPtr	EndPos;
 
 	/* XLogBeginInsert() must have been called. */
