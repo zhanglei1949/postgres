@@ -18,6 +18,7 @@
 #include <limits.h>
 #include <sys/uio.h>
 #include <unistd.h>
+#include <bits/xopen_lim.h>
 
 #else
 

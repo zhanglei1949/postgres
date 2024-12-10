@@ -18,6 +18,7 @@
 #define MEMUTILS_H
 
 #include "nodes/memnodes.h"
+#include "utils/palloc.h"
 
 
 /*

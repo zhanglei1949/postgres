@@ -12,6 +12,8 @@
 #ifndef _PG_LOCALE_
 #define _PG_LOCALE_
 
+#include "c.h"
+
 #ifdef USE_ICU
 #include <unicode/ucol.h>
 #endif

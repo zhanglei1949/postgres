@@ -18,6 +18,9 @@
 #ifndef STRINGINFO_H
 #define STRINGINFO_H
 
+#include <stdarg.h>
+#include "c.h"
+
 /*-------------------------
  * StringInfoData holds information about an extensible string.
  *		data	is the current buffer for the string.

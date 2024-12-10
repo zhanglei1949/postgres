@@ -14,6 +14,7 @@
 #ifndef ELOG_H
 #define ELOG_H
 
+#include "c.h"
 #include <setjmp.h>
 
 #include "lib/stringinfo.h"
