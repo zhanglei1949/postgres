@@ -590,11 +590,14 @@ PostmasterMain(int argc, char *argv[])
 					ParseLongOption(optarg, &name, &value);
 					if (!value)
 					{
-						if (opt == '-')
+						if (opt == '-'){
+							ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+										 errmsg("fail to parseLongOption, %s", optarg)));
 							ereport(ERROR,
 									(errcode(ERRCODE_SYNTAX_ERROR),
 									 errmsg("--%s requires a value",
 											optarg)));
+						}
 						else
 							ereport(ERROR,
 									(errcode(ERRCODE_SYNTAX_ERROR),

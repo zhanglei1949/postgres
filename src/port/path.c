@@ -824,7 +824,11 @@ make_absolute_path(const char *path)
 void
 get_share_path(const char *my_exec_path, char *ret_path)
 {
-	make_relative_path(ret_path, PGSHAREDIR, PGBINDIR, my_exec_path);
+	// make_relative_path(ret_path, PGSHAREDIR, PGBINDIR, my_exec_path);
+	// return "/opt/postgres/share"; // TODO: FIXME
+	printf("get_share_path\n");
+	// ret_path = "/opt/postgres/share";
+	strlcpy(ret_path, "/opt/postgres/share", MAXPGPATH);
 }
 
 /*
@@ -869,7 +873,8 @@ get_includeserver_path(const char *my_exec_path, char *ret_path)
 void
 get_lib_path(const char *my_exec_path, char *ret_path)
 {
-	make_relative_path(ret_path, LIBDIR, PGBINDIR, my_exec_path);
+	// make_relative_path(ret_path, LIBDIR, PGBINDIR, my_exec_path);
+	strlcpy(ret_path, "/opt/postgres/lib", MAXPGPATH); // TODO: FIXME
 }
 
 /*

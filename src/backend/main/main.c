@@ -191,9 +191,11 @@ main(int argc, char *argv[])
 #endif
 	else if (argc > 1 && strcmp(argv[1], "--describe-config") == 0)
 		GucInfoMain();
-	else if (argc > 1 && strcmp(argv[1], "--single") == 0)
+	else if (argc > 1 && strcmp(argv[1], "--single") == 0){
+		// printf("enter single user mode...\n");
 		PostgresSingleUserMain(argc, argv,
 							   strdup(get_user_name_or_exit(progname)));
+	}
 	else{
 		printf("Entering PostmasterMain...");
 		PostmasterMain(argc, argv);

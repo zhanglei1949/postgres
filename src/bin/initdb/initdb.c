@@ -3098,6 +3098,7 @@ initialize_data_directory(void)
 	printfPQExpBuffer(&cmd, "\"%s\" %s %s template1 >%s",
 					  backend_exec, backend_options, extra_options, DEVNULL);
 
+	printf("running %s\n", cmd.data);
 	PG_CMD_OPEN(cmd.data);
 
 	setup_auth(cmdfd);
@@ -3133,6 +3134,7 @@ initialize_data_directory(void)
 
 	make_postgres(cmdfd);
 
+	printf("closing %s\n", cmd.data);
 	PG_CMD_CLOSE();
 	termPQExpBuffer(&cmd);
 

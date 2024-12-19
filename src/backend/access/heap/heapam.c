@@ -1985,7 +1985,7 @@ void
 heap_insert(Relation relation, HeapTuple tup, CommandId cid,
 			int options, BulkInsertState bistate)
 {
-	printf("%d heap_insert\n", getpid());
+	// printf("%d heap_insert\n", getpid());
 	TransactionId xid = GetCurrentTransactionId();
 	HeapTuple	heaptup;
 	Buffer		buffer;
@@ -2055,7 +2055,7 @@ heap_insert(Relation relation, HeapTuple tup, CommandId cid,
 	 *
 	 * If you do add PageSetPrunable here, add it in heap_xlog_insert too.
 	 */
-	printf("Make buffer dirty\n");
+	// printf("Make buffer dirty\n");
 	MarkBufferDirty(buffer);
 
 	/* XLOG stuff */
