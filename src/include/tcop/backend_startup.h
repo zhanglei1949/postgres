@@ -23,22 +23,22 @@ extern PGDLLIMPORT bool Trace_connection_negotiation;
  * send an error to the client and close the connection.  Note that the
  * connection can fail for various reasons even if postmaster passed CAC_OK.
  */
-typedef enum CAC_state
-{
-	CAC_OK,
-	CAC_STARTUP,
-	CAC_SHUTDOWN,
-	CAC_RECOVERY,
-	CAC_NOTCONSISTENT,
-	CAC_TOOMANY,
+typedef enum CAC_state {
+  CAC_OK,
+  CAC_STARTUP,
+  CAC_FLEX,
+  CAC_SHUTDOWN,
+  CAC_RECOVERY,
+  CAC_NOTCONSISTENT,
+  CAC_TOOMANY,
 } CAC_state;
 
 /* Information passed from postmaster to backend process in 'startup_data' */
-typedef struct BackendStartupData
-{
-	CAC_state	canAcceptConnections;
+typedef struct BackendStartupData {
+  CAC_state canAcceptConnections;
 } BackendStartupData;
 
-extern void BackendMain(char *startup_data, size_t startup_data_len) pg_attribute_noreturn();
+extern void BackendMain(char* startup_data, size_t startup_data_len)
+    pg_attribute_noreturn();
 
-#endif							/* BACKEND_STARTUP_H */
+#endif /* BACKEND_STARTUP_H */

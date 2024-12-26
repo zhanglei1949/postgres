@@ -22,6 +22,10 @@
 /* We cannot include nodes.h yet, so forward-declare struct Node */
 struct Node;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 /* Error level codes */
 #define DEBUG5		10			/* Debugging messages, in categories of
@@ -537,5 +541,9 @@ extern void write_jsonlog(ErrorData *edata);
  * safely (memory context, GUC load etc)
  */
 extern void write_stderr(const char *fmt,...) pg_attribute_printf(1, 2);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif							/* ELOG_H */

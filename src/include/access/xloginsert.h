@@ -39,6 +39,10 @@
 									 * is taken */
 #define REGBUF_NO_CHANGE	0x20	/* intentionally register clean buffer */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* prototypes for public functions in xloginsert.c: */
 extern void XLogBeginInsert(void);
 extern void XLogSetRecordFlags(uint8 flags);
@@ -63,5 +67,9 @@ extern void log_newpage_range(Relation rel, ForkNumber forknum,
 extern XLogRecPtr XLogSaveBufferForHint(Buffer buffer, bool buffer_std);
 
 extern void InitXLogInsert(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif							/* XLOGINSERT_H */

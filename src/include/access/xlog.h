@@ -11,6 +11,7 @@
 #ifndef XLOG_H
 #define XLOG_H
 
+#include "postgres.h"
 #include "access/xlogbackup.h"
 #include "access/xlogdefs.h"
 #include "datatype/timestamp.h"
@@ -199,6 +200,10 @@ typedef enum WALAvailability
 struct XLogRecData;
 struct XLogReaderState;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern XLogRecPtr XLogInsertRecord(struct XLogRecData *rdata,
 								   XLogRecPtr fpw_lsn,
 								   uint8 flags,
@@ -297,6 +302,10 @@ extern void do_pg_backup_stop(BackupState *state, bool waitforarchive);
 extern void do_pg_abort_backup(int code, Datum arg);
 extern void register_persistent_abort_backup_handler(void);
 extern SessionBackupState get_backup_status(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 /* File path names (all relative to $PGDATA) */
 #define RECOVERY_SIGNAL_FILE	"recovery.signal"
