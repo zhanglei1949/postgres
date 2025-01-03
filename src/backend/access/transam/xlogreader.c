@@ -1145,12 +1145,11 @@ ValidXLogRecordHeader(XLogReaderState *state, XLogRecPtr RecPtr,
 	if (record->xl_tot_len < SizeOfXLogRecord)
 	{
 		printf("ValidXLogRecordHeader: total_len %d, SizeOfXLogRecord %d\n", record->xl_tot_len, SizeOfXLogRecord);
-		return false;
 		report_invalid_record(state,
 							  "ValidXLogRecordHeader invalid record length at %X/%X: expected at least %u, got %u",
 							  LSN_FORMAT_ARGS(RecPtr),
 							  (uint32) SizeOfXLogRecord, record->xl_tot_len);
-		
+		return false;
 	}
 	if (!RmgrIdIsValid(record->xl_rmid))
 	{
