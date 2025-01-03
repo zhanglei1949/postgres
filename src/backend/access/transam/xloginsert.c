@@ -473,7 +473,6 @@ XLogSetRecordFlags(uint8 flags)
 XLogRecPtr
 XLogInsert(RmgrId rmid, uint8 info)
 {
-	// printf("%d XLogInsert\n", getpid());
 	XLogRecPtr	EndPos;
 
 	/* XLogBeginInsert() must have been called. */

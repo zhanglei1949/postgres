@@ -1337,7 +1337,7 @@ PostmasterMain(int argc, char *argv[])
 	printf("%d In post Master, Starting background processes\n", getpid());
 	if (CheckpointerPID == 0){
 		printf("%d In post Master, Starting Checkpointer\n", getpid());
-		// CheckpointerPID = StartChildProcess(B_CHECKPOINTER);
+		CheckpointerPID = StartChildProcess(B_CHECKPOINTER);
 	}
 	if (BgWriterPID == 0){
 		printf("%d In post Master, Starting BgWriter\n", getpid());
