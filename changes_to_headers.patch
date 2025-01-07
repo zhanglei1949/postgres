@@ -1,0 +1,105 @@
+diff --git a/src/include/access/xlog.h b/src/include/access/xlog.h
+index 34ad46c067..878ec496bb 100644
+--- a/src/include/access/xlog.h
++++ b/src/include/access/xlog.h
+@@ -16,6 +16,9 @@
+ #include "datatype/timestamp.h"
+ #include "lib/stringinfo.h"
+ #include "nodes/pg_list.h"
++#ifdef __cplusplus
++extern "C" {
++#endif
+ 
+ 
+ /* Sync methods */
+@@ -309,5 +312,8 @@ extern SessionBackupState get_backup_status(void);
+ 
+ /* files to signal promotion to primary */
+ #define PROMOTE_SIGNAL_FILE		"promote"
++#ifdef __cplusplus
++}
++#endif
+ 
+ #endif							/* XLOG_H */
+diff --git a/src/include/access/xloginsert.h b/src/include/access/xloginsert.h
+index 652f7bc9bd..db22dcb3bb 100644
+--- a/src/include/access/xloginsert.h
++++ b/src/include/access/xloginsert.h
+@@ -38,6 +38,9 @@
+ #define REGBUF_KEEP_DATA	0x10	/* include data even if a full-page image
+ 									 * is taken */
+ #define REGBUF_NO_CHANGE	0x20	/* intentionally register clean buffer */
++#ifdef __cplusplus
++extern "C" {
++#endif
+ 
+ /* prototypes for public functions in xloginsert.c: */
+ extern void XLogBeginInsert(void);
+@@ -63,5 +66,8 @@ extern void log_newpage_range(Relation rel, ForkNumber forknum,
+ extern XLogRecPtr XLogSaveBufferForHint(Buffer buffer, bool buffer_std);
+ 
+ extern void InitXLogInsert(void);
++#ifdef __cplusplus
++}
++#endif
+ 
+ #endif							/* XLOGINSERT_H */
+diff --git a/src/include/catalog/pg_control.h b/src/include/catalog/pg_control.h
+index e80ff8e414..ecd817df7e 100644
+--- a/src/include/catalog/pg_control.h
++++ b/src/include/catalog/pg_control.h
+@@ -80,6 +80,7 @@ typedef struct CheckPoint
+ /* 0xC0 is used in Postgres 9.5-11 */
+ #define XLOG_OVERWRITE_CONTRECORD		0xD0
+ #define XLOG_CHECKPOINT_REDO			0xE0
++#define XLOG_FLEX_WAL_REDO      0xF0
+ 
+ 
+ /*
+diff --git a/src/include/miscadmin.h b/src/include/miscadmin.h
+index 8ca98f65b2..a70274cb6c 100644
+--- a/src/include/miscadmin.h
++++ b/src/include/miscadmin.h
+@@ -352,6 +352,7 @@ typedef enum BackendType
+ 	B_ARCHIVER,
+ 	B_BG_WRITER,
+ 	B_CHECKPOINTER,
++B_FLEX,
+ 	B_STARTUP,
+ 	B_WAL_RECEIVER,
+ 	B_WAL_SUMMARIZER,
+diff --git a/src/include/port/pg_iovec.h b/src/include/port/pg_iovec.h
+index e5fe677b37..a9dd39ca7b 100644
+--- a/src/include/port/pg_iovec.h
++++ b/src/include/port/pg_iovec.h
+@@ -18,6 +18,7 @@
+ #include <limits.h>
+ #include <sys/uio.h>
+ #include <unistd.h>
++#define IOV_MAX __IOV_MAX
+ 
+ #else
+ 
+diff --git a/src/include/utils/elog.h b/src/include/utils/elog.h
+index e54eca5b48..18620fae43 100644
+--- a/src/include/utils/elog.h
++++ b/src/include/utils/elog.h
+@@ -17,6 +17,9 @@
+ #include <setjmp.h>
+ 
+ #include "lib/stringinfo.h"
++#ifdef __cplusplus
++extern "C" {
++#endif
+ 
+ /* We cannot include nodes.h yet, so forward-declare struct Node */
+ struct Node;
+@@ -536,5 +539,8 @@ extern void write_jsonlog(ErrorData *edata);
+  * safely (memory context, GUC load etc)
+  */
+ extern void write_stderr(const char *fmt,...) pg_attribute_printf(1, 2);
++#ifdef __cplusplus
++}
++#endif
+ 
+ #endif							/* ELOG_H */
